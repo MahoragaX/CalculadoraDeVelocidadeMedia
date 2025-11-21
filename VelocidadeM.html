@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Velocidade Média</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Remove setas do input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; margin: 0; 
+        }
+        /* Esconde o input type="time" nativo, mas deixa clicável via JS */
+        .hidden-picker {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        
+        <!-- Header -->
+        <div class="bg-indigo-600 p-6 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-full bg-indigo-500 opacity-20 transform -skew-y-6 origin-top-left"></div>
+            <h1 class="text-white text-2xl font-bold flex items-center justify-center gap-2 relative z-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Velocidade Média
+            </h1>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="p-6 space-y-6">
+            
+            <!-- Distância -->
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide text-xs">Distância</label>
+                <div class="relative group">
+                    <input type="number" id="distance" placeholder="Ex: 500" 
+                        class="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-800 text-lg font-medium group-hover:bg-white">
+                    <span class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 font-bold text-xs bg-slate-100 px-2 py-1 rounded">METROS</span>
+                </div>
+            </div>
+
+            <!-- Inputs de Tempo Híbridos -->
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-4">
+                
+                <!-- Horário Início -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide text-xs">Início (HH:MM:SS)</label>
+                    <div class="relative flex items-center">
+                        <input type="text" id="startInput" placeholder="14:58:18" maxlength="8"
+                            oninput="formatTimeInput(this)"
+                            class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-l-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-mono text-lg tracking-wider placeholder-slate-300 rounded-r-none border-r-0">
+                        
+                        <!-- Botão Trigger do Picker -->
+                        <button type="button" onclick="openPicker('startPicker')"
+                            class="bg-slate-100 border border-l-0 border-slate-300 rounded-r-lg px-3 py-3 hover:bg-slate-200 transition-colors h-full flex items-center justify-center text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <!-- Picker Nativo Oculto -->
+                        <input type="time" id="startPicker" step="1" class="hidden-picker" onchange="syncPickerToText(this, 'startInput')">
+                    </div>
+                </div>
+
+                <!-- Horário Fim -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide text-xs">Fim (HH:MM:SS)</label>
+                    <div class="relative flex items-center">
+                        <input type="text" id="endInput" placeholder="14:58:59" maxlength="8"
+                            oninput="formatTimeInput(this)"
+                            class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-l-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-mono text-lg tracking-wider placeholder-slate-300 rounded-r-none border-r-0">
+                        
+                        <button type="button" onclick="openPicker('endPicker')"
+                            class="bg-slate-100 border border-l-0 border-slate-300 rounded-r-lg px-3 py-3 hover:bg-slate-200 transition-colors h-full flex items-center justify-center text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <input type="time" id="endPicker" step="1" class="hidden-picker" onchange="syncPickerToText(this, 'endInput')">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão Calcular -->
+            <button onclick="calculateSpeed()" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-lg shadow-lg shadow-indigo-200 transition-all transform active:scale-[0.98] text-lg flex items-center justify-center gap-2">
+                <span>Calcular Agora</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+            </button>
+
+            <!-- Resultado -->
+            <div id="resultCard" class="hidden bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-xl p-6 text-center animate-fade-in shadow-inner">
+                <p class="text-indigo-400 text-xs font-bold uppercase tracking-widest mb-2">Velocidade Média Calculada</p>
+                
+                <div class="flex items-baseline justify-center gap-1 mb-4">
+                    <span id="speedValue" class="text-6xl font-extrabold text-indigo-900 tracking-tight">0.0</span>
+                    <span class="text-xl font-bold text-indigo-500">Km/h</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-indigo-100">
+                    <div class="bg-white p-2 rounded-lg border border-indigo-50">
+                        <span class="block text-xs text-slate-400 uppercase font-semibold">Tempo</span>
+                        <span id="timeDiff" class="text-indigo-700 font-mono font-bold">-</span>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-indigo-50">
+                        <span class="block text-xs text-slate-400 uppercase font-semibold">Distância</span>
+                        <span id="distDisplay" class="text-indigo-700 font-mono font-bold">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Erro -->
+            <div id="errorMsg" class="hidden bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-200 font-medium">
+                Verifique os dados preenchidos.
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Lógica de Interface e Máscara ---
+
+        // Abre o seletor nativo (Relógio)
+        function openPicker(pickerId) {
+            const picker = document.getElementById(pickerId);
+            try {
+                picker.showPicker(); // Funciona em navegadores modernos
+            } catch (error) {
+                picker.click(); // Fallback
+                picker.focus();
+            }
+        }
+
+        // Quando o usuário escolhe no relógio, joga o texto formatado no input
+        function syncPickerToText(picker, inputId) {
+            const input = document.getElementById(inputId);
+            if(picker.value) {
+                input.value = picker.value;
+                // Se o navegador não retornar segundos (ex: 14:00), adiciona :00
+                if(input.value.length === 5) {
+                    input.value += ":00";
+                }
+            }
+        }
+
+        // Formata o texto enquanto digita (Ex: digita 1458 -> vira 14:58)
+        function formatTimeInput(input) {
+            let v = input.value.replace(/\D/g, ""); // Remove tudo que não é número
+            
+            // Limita tamanho
+            if (v.length > 6) v = v.substring(0, 6);
+
+            // Adiciona dois pontos
+            if (v.length > 4) {
+                v = v.replace(/^(\d{2})(\d{2})(\d{0,2})/, "$1:$2:$3");
+            } else if (v.length > 2) {
+                v = v.replace(/^(\d{2})(\d{0,2})/, "$1:$2");
+            }
+            
+            input.value = v;
+        }
+
+        // --- Lógica de Cálculo ---
+
+        function timeStringToSeconds(str) {
+            if (!str) return null;
+            // Tenta limpar espaços e garante formato HH:MM:SS ou HH:MM
+            const cleanStr = str.trim();
+            const parts = cleanStr.split(':');
+            
+            if (parts.length < 2) return null; // Precisa pelo menos Hora:Minuto
+
+            const h = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            const s = parts.length > 2 ? parseInt(parts[2], 10) : 0; // Segundos opcionais (assume 0)
+
+            if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+
+            return (h * 3600) + (m * 60) + s;
+        }
+
+        function calculateSpeed() {
+            const distInput = document.getElementById('distance').value;
+            const startStr = document.getElementById('startInput').value;
+            const endStr = document.getElementById('endInput').value;
+            
+            const resultCard = document.getElementById('resultCard');
+            const errorMsg = document.getElementById('errorMsg');
+
+            resultCard.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+
+            if (!distInput || !startStr || !endStr) {
+                showError("Preencha a distância e os horários.");
+                return;
+            }
+
+            const t1 = timeStringToSeconds(startStr);
+            const t2 = timeStringToSeconds(endStr);
+
+            if (t1 === null || t2 === null) {
+                showError("Formato de hora inválido. Use HH:MM:SS");
+                return;
+            }
+
+            const distMeters = parseFloat(distInput);
+            
+            // Cálculo da diferença
+            let diffSeconds = t2 - t1;
+
+            // Se virou o dia (ex: 23:59 -> 00:01)
+            if (diffSeconds < 0) {
+                diffSeconds += 86400; 
+            }
+
+            if (diffSeconds === 0) {
+                showError("O tempo inicial e final não podem ser iguais.");
+                return;
+            }
+
+            // Velocidade
+            const speedMs = distMeters / diffSeconds;
+            const speedKmh = speedMs * 3.6;
+
+            // Formatação do tempo
+            const hours = Math.floor(diffSeconds / 3600);
+            const minutes = Math.floor((diffSeconds % 3600) / 60);
+            const seconds = diffSeconds % 60;
+
+            let timeString = "";
+            if (hours > 0) timeString += `${hours}h `;
+            if (minutes > 0) timeString += `${minutes}m `;
+            timeString += `${seconds}s`;
+
+            // Exibir
+            document.getElementById('speedValue').textContent = speedKmh.toFixed(1).replace('.', ',');
+            document.getElementById('timeDiff').textContent = timeString;
+            document.getElementById('distDisplay').textContent = `${distMeters} m`;
+            
+            resultCard.classList.remove('hidden');
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
